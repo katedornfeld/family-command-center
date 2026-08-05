@@ -43,26 +43,25 @@ where event_date between '2026-08-10' and '2026-08-16'
   );
 
 insert into events (title, event_date, start_time, end_time, family_member_id, event_type, is_recurring)
-select 'Theo - PT', '2026-08-10', '13:00', '14:00', id, 'appointment', true
-from family_members where name = 'Theo Dornfeld'
-union all
-select 'Madi - Piano', '2026-08-10', '16:30', '17:00', id, 'activity', true
-from family_members where name = 'Madi Dornfeld'
-union all
-select 'Madi - Dance', '2026-08-10', '18:45', '20:15', id, 'activity', true
-from family_members where name = 'Madi Dornfeld'
-union all
-select 'Madi - Dance', '2026-08-12', '16:45', '20:15', id, 'activity', true
-from family_members where name = 'Madi Dornfeld'
-union all
-select 'Madi - OT', '2026-08-13', '14:15', '15:15', id, 'appointment', true
-from family_members where name = 'Madi Dornfeld'
-union all
-select 'Theo & Hadley - Dance', '2026-08-10', '16:30', '17:00', id, 'activity', true
-from family_members where name = 'Theo Dornfeld'
-union all
-select 'Theo & Hadley - Dance', '2026-08-10', '16:30', '17:00', id, 'activity', true
-from family_members where name = 'Hadley Dornfeld';
+select
+  v.title,
+  v.event_date::date,
+  v.start_time::time,
+  v.end_time::time,
+  fm.id,
+  v.event_type,
+  v.is_recurring
+from (
+  values
+    ('Theo - PT',             '2026-08-10', '13:00', '14:00', 'Theo Dornfeld',   'appointment', true),
+    ('Madi - Piano',          '2026-08-10', '16:30', '17:00', 'Madi Dornfeld',   'activity',     true),
+    ('Madi - Dance',          '2026-08-10', '18:45', '20:15', 'Madi Dornfeld',   'activity',     true),
+    ('Madi - Dance',          '2026-08-12', '16:45', '20:15', 'Madi Dornfeld',   'activity',     true),
+    ('Madi - OT',             '2026-08-13', '14:15', '15:15', 'Madi Dornfeld',   'appointment', true),
+    ('Theo & Hadley - Dance', '2026-08-10', '16:30', '17:00', 'Theo Dornfeld',   'activity',     true),
+    ('Theo & Hadley - Dance', '2026-08-10', '16:30', '17:00', 'Hadley Dornfeld', 'activity',     true)
+) as v(title, event_date, start_time, end_time, member_name, event_type, is_recurring)
+join family_members fm on fm.name = v.member_name;
 
 -- ---------------------------------------------------------------------------
 -- grocery_items
