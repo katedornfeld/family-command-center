@@ -11,11 +11,12 @@ This is the MVP scope defined in Assignment 5A / the project's Build Bible. See 
 - `/meals` — Weekly Meal Planner: Claude-assisted meal recommendations, reviewed and approved by the user
 - `/groceries` — Shared Grocery List: add/edit/delete/mark items purchased
 
-This is currently a project shell — routes, navigation, and layout only. Supabase data wiring, the Claude meal-planning call, and the daily weather cron job are not yet implemented.
+The Family Calendar is connected to Supabase (`events` and `family_members`). The other three screens are still shell/placeholder UI. The Claude meal-planning call and the daily weather cron job are not yet implemented.
 
 ## Getting Started
 
-Install dependencies and run the dev server:
+1. Copy `.env.example` to `.env.local` and fill in your Supabase project's URL and anon key (Project Settings → API in the Supabase dashboard). Required as of the Family Calendar being wired up — `npm run build` and any page under `/calendar` will fail without them.
+2. Install dependencies and run the dev server:
 
 ```bash
 npm install

@@ -3,12 +3,19 @@
 // Once the Supabase CLI is set up, these can be replaced with generated
 // types (`supabase gen types typescript`) — the shape is intentionally
 // compatible with that output.
+//
+// IMPORTANT: the table Row/Insert/Update shapes below must be declared with
+// `type`, not `interface`. @supabase/supabase-js's generic inference for
+// .insert()/.update() silently collapses to `never` when a named interface
+// is used there (confirmed empirically against supabase-js 2.112.1) — the
+// outer `Database` wrapper is fine as an interface, only the leaf table
+// shapes are affected.
 
 export type EventType = "appointment" | "activity" | "birthday" | "work" | "school";
 export type MealSource = "claude" | "manual";
 export type MealStatus = "suggested" | "approved" | "edited" | "rejected";
 
-export interface FamilyMember {
+export type FamilyMember = {
   id: string;
   name: string;
   role: string | null;
@@ -16,9 +23,9 @@ export interface FamilyMember {
   color: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface EventRow {
+export type EventRow = {
   id: string;
   title: string;
   event_date: string;
@@ -32,9 +39,9 @@ export interface EventRow {
   is_cancelled: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface WeatherForecast {
+export type WeatherForecast = {
   id: string;
   forecast_date: string;
   high_temp: number | null;
@@ -42,9 +49,9 @@ export interface WeatherForecast {
   condition: string | null;
   last_updated: string;
   created_at: string;
-}
+};
 
-export interface MealPlan {
+export type MealPlan = {
   id: string;
   plan_date: string;
   meal_name: string;
@@ -55,9 +62,9 @@ export interface MealPlan {
   status: MealStatus;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface GroceryItem {
+export type GroceryItem = {
   id: string;
   item_name: string;
   category: string | null;
@@ -66,7 +73,7 @@ export interface GroceryItem {
   notes: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
 export interface Database {
   public: {
@@ -75,27 +82,34 @@ export interface Database {
         Row: FamilyMember;
         Insert: Partial<FamilyMember> & { name: string };
         Update: Partial<FamilyMember>;
+        Relationships: [];
       };
       events: {
         Row: EventRow;
         Insert: Partial<EventRow> & { title: string; event_date: string };
         Update: Partial<EventRow>;
+        Relationships: [];
       };
       weather_forecasts: {
         Row: WeatherForecast;
         Insert: Partial<WeatherForecast> & { forecast_date: string };
         Update: Partial<WeatherForecast>;
+        Relationships: [];
       };
       meal_plans: {
         Row: MealPlan;
         Insert: Partial<MealPlan> & { plan_date: string; meal_name: string };
         Update: Partial<MealPlan>;
+        Relationships: [];
       };
       grocery_items: {
         Row: GroceryItem;
         Insert: Partial<GroceryItem> & { item_name: string };
         Update: Partial<GroceryItem>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }

@@ -1,49 +1,52 @@
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { CalendarClient } from "@/components/calendar/calendar-client";
+import { getCurrentWeekRange, toISODate } from "@/lib/dates";
+import { supabase } from "@/lib/supabase/client";
 
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const dynamic = "force-dynamic";
 
-export default function CalendarPage() {
+export default async function CalendarPage() {
+  const { start, end, days } = getCurrentWeekRange();
+  const today = toISODate(new Date());
+
+  const [weekEventsResult, upcomingEventsResult, familyMembersResult] = await Promise.all([
+    supabase
+      .from("events")
+      .select("*")
+      .gte("event_date", start)
+      .lte("event_date", end)
+      .order("event_date")
+      .order("start_time", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("events")
+      .select("*")
+      .gte("event_date", today)
+      .order("event_date")
+      .order("start_time", { ascending: true, nullsFirst: false })
+      .limit(10),
+    supabase.from("family_members").select("*").order("name"),
+  ]);
+
+  const loadError =
+    weekEventsResult.error || upcomingEventsResult.error || familyMembersResult.error;
+
   return (
     <PageContainer>
       <PageHeader title="Family Calendar" />
 
-      <div className="flex flex-col gap-4">
-        <Card title="Weekly View">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            {WEEK_DAYS.map((day) => (
-              <div
-                key={day}
-                className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
-              >
-                <p className="mb-2 text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                  {day}
-                </p>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500">No events</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Upcoming Family Events">
-          <EmptyState message="No events added yet. Add your first event to get started." />
-        </Card>
-
-        <div className="flex flex-wrap gap-3">
-          <Button variant="primary" disabled title="Coming soon">
-            Add Event
-          </Button>
-          <Button disabled title="Coming soon">
-            Edit Event
-          </Button>
-          <Button disabled title="Coming soon">
-            Delete Event
-          </Button>
-        </div>
-      </div>
+      {loadError ? (
+        <p className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          Something went wrong loading your data. Please try again.
+        </p>
+      ) : (
+        <CalendarClient
+          weekDays={days}
+          weekEvents={weekEventsResult.data ?? []}
+          upcomingEvents={upcomingEventsResult.data ?? []}
+          familyMembers={familyMembersResult.data ?? []}
+        />
+      )}
     </PageContainer>
   );
 }
