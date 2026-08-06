@@ -11,11 +11,11 @@ This is the MVP scope defined in Assignment 5A / the project's Build Bible. See 
 - `/meals` — Weekly Meal Planner: Claude-assisted meal recommendations, reviewed and approved by the user
 - `/groceries` — Shared Grocery List: add/edit/delete/mark items purchased
 
-The Family Calendar is connected to Supabase (`events` and `family_members`). The other three screens are still shell/placeholder UI. The Claude meal-planning call and the daily weather cron job are not yet implemented.
+All four screens are connected to Supabase. The Weekly Meal Planner's "Generate Weekly Meal Plan" button calls the Claude API (`POST /api/meal-plan/generate`) to suggest one dinner per day for the current week; the daily weather cron job is not yet implemented.
 
 ## Getting Started
 
-1. Copy `.env.example` to `.env.local` and fill in your Supabase project's URL and anon key (Project Settings → API in the Supabase dashboard). Required as of the Family Calendar being wired up — `npm run build` and any page under `/calendar` will fail without them.
+1. Copy `.env.example` to `.env.local` and fill in the values from your Supabase project (Project Settings → API) and your Anthropic API key (console.anthropic.com/settings/keys). `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are required for the app to build or run at all; `SUPABASE_SERVICE_ROLE_KEY` and `ANTHROPIC_API_KEY` are required specifically for `/api/meal-plan/generate` (server-only — never exposed to the browser).
 2. Install dependencies and run the dev server:
 
 ```bash

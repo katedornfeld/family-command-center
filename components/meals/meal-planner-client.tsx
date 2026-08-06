@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { MealForm } from "./meal-form";
 import { supabase } from "@/lib/supabase/client";
 import type { MealPlan, MealStatus } from "@/types/database";
@@ -49,6 +48,8 @@ export function MealPlannerClient({
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const mealsByDate = new Map<string, MealPlan[]>();
   for (const meal of mealPlans) {
@@ -85,12 +86,30 @@ export function MealPlannerClient({
     router.refresh();
   }
 
+  async function handleGenerate() {
+    setGenerateError(null);
+    setGenerating(true);
+    try {
+      const response = await fetch("/api/meal-plan/generate", { method: "POST" });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setGenerateError(
+          body?.error ?? "Couldn't generate suggestions right now. Try again, or add meals manually.",
+        );
+        return;
+      }
+      router.refresh();
+    } catch {
+      setGenerateError("Couldn't generate suggestions right now. Try again, or add meals manually.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function handleFormSaved() {
     setFormState(null);
     router.refresh();
   }
-
-  const hasAnyMeals = mealPlans.length > 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -186,26 +205,20 @@ export function MealPlannerClient({
 
       <div className="flex flex-col gap-2">
         <div>
-          <Button variant="primary" disabled title="Claude integration not yet connected">
-            Generate Weekly Meal Plan
+          <Button variant="primary" onClick={handleGenerate} disabled={generating}>
+            {generating ? "Generating…" : "Generate Weekly Meal Plan"}
           </Button>
         </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Claude-powered generation isn&apos;t connected yet — this button will call the Claude
-          API in a later step. Add or edit meals manually above for now.
-        </p>
-      </div>
-
-      <Card title="Claude's Recommendations">
-        {hasAnyMeals ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Claude-generated suggestions will appear here once the Claude integration is
-            connected. Existing meals for this week are shown in Meal Slots above.
-          </p>
+        {generateError ? (
+          <p className="text-sm text-red-600 dark:text-red-400">{generateError}</p>
         ) : (
-          <EmptyState message="No meal plan yet for this week — click Generate Weekly Meal Plan to get started." />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Claude reviews this week&apos;s schedule and weather and suggests one dinner per day.
+            Suggestions appear above with a &quot;Suggested&quot; badge — review and approve, edit,
+            or reject each one.
+          </p>
         )}
-      </Card>
+      </div>
 
       {formState ? (
         <MealForm
