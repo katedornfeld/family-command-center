@@ -1,25 +1,28 @@
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { GroceriesClient } from "@/components/groceries/groceries-client";
+import { supabase } from "@/lib/supabase/client";
 
-export default function GroceriesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function GroceriesPage() {
+  const { data, error } = await supabase
+    .from("grocery_items")
+    .select("*")
+    .order("purchased", { ascending: true })
+    .order("created_at", { ascending: true });
+
   return (
     <PageContainer>
       <PageHeader title="Grocery List" />
 
-      <div className="flex flex-col gap-4">
-        <Card title="Checklist">
-          <EmptyState message="Your grocery list is empty. Add an item to get started." />
-        </Card>
-
-        <div>
-          <Button variant="primary" disabled title="Coming soon">
-            Add Item
-          </Button>
-        </div>
-      </div>
+      {error ? (
+        <p className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          Something went wrong loading your data. Please try again.
+        </p>
+      ) : (
+        <GroceriesClient items={data ?? []} />
+      )}
     </PageContainer>
   );
 }
