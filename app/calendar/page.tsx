@@ -31,6 +31,14 @@ export default async function CalendarPage() {
   const loadError =
     weekEventsResult.error || upcomingEventsResult.error || familyMembersResult.error;
 
+  // TEMP DEBUG — remove once the Supabase error is diagnosed. Logs the full
+  // PostgrestError object(s) server-side only; never logs env var values.
+  if (loadError) {
+    console.error("[calendar] weekEvents error:", weekEventsResult.error);
+    console.error("[calendar] upcomingEvents error:", upcomingEventsResult.error);
+    console.error("[calendar] familyMembers error:", familyMembersResult.error);
+  }
+
   return (
     <PageContainer>
       <PageHeader title="Family Calendar" />
