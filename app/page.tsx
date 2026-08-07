@@ -61,14 +61,23 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: true }),
   ]);
 
-  // TEMP DEBUG — remove once real-database verification is complete. Logs
-  // full PostgrestError objects server-side only; never logs env var values.
-  if (eventsResult.error || weatherResult.error || dinnerResult.error || groceryResult.error) {
-    console.error("[dashboard] events error:", eventsResult.error);
-    console.error("[dashboard] weather error:", weatherResult.error);
-    console.error("[dashboard] dinner error:", dinnerResult.error);
-    console.error("[dashboard] grocery error:", groceryResult.error);
+  // TEMP DEBUG — remove once the Supabase error is diagnosed. Logs only the
+  // message/details/hint/code fields of each PostgrestError, server-side
+  // only; never logs env var values or other secrets.
+  function logSupabaseError(label: string, error: { message: string; details: string; hint: string; code: string } | null) {
+    if (!error) return;
+    console.error(`[dashboard] ${label} error:`, {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
   }
+
+  logSupabaseError("events", eventsResult.error);
+  logSupabaseError("weather", weatherResult.error);
+  logSupabaseError("dinner", dinnerResult.error);
+  logSupabaseError("grocery", groceryResult.error);
 
   const events = eventsResult.data ?? [];
   const weather = weatherResult.data;
