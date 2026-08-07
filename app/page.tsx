@@ -3,7 +3,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { formatEventTime } from "@/lib/dates";
+import { APP_TIME_ZONE, formatEventTime, getTodayISODate } from "@/lib/dates";
 import { supabase } from "@/lib/supabase/client";
 
 // Always show "today," never a cached snapshot from build time.
@@ -17,25 +17,18 @@ const QUICK_ACTIONS = [
 
 const GROCERY_PREVIEW_LIMIT = 5;
 
-function toISODate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export default async function DashboardPage() {
-  const todayDate = new Date();
-  const today = toISODate(todayDate);
-  const todayLabel = todayDate.toLocaleDateString("en-US", {
+  const today = getTodayISODate();
+  const todayLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: APP_TIME_ZONE,
   });
 
   const [eventsResult, weatherResult, dinnerResult, groceryResult] = await Promise.all([

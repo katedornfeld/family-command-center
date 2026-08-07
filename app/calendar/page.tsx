@@ -1,14 +1,14 @@
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { CalendarClient } from "@/components/calendar/calendar-client";
-import { getCurrentWeekRange, toISODate } from "@/lib/dates";
+import { getCurrentWeekRange, getTodayISODate } from "@/lib/dates";
 import { supabase } from "@/lib/supabase/client";
 
 export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
   const { start, end, days } = getCurrentWeekRange();
-  const today = toISODate(new Date());
+  const today = getTodayISODate();
 
   const [weekEventsResult, upcomingEventsResult, familyMembersResult] = await Promise.all([
     supabase

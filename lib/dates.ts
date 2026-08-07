@@ -1,3 +1,8 @@
+// Single source of truth for "today" across the app — every screen and the
+// weather cron should agree on the current calendar day for the household,
+// not the server process's own time zone (Vercel functions run in UTC).
+export const APP_TIME_ZONE = "America/Chicago";
+
 export const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function toISODate(date: Date): string {
@@ -7,15 +12,35 @@ export function toISODate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function getCurrentWeekRange(today: Date = new Date()): {
+/**
+ * Today's calendar date (YYYY-MM-DD) in APP_TIME_ZONE, computed from the
+ * current instant via Intl rather than the server's local Date getters —
+ * those would return UTC's calendar day on Vercel, which can be a full day
+ * ahead of Chicago's for several hours around midnight UTC.
+ */
+export function getTodayISODate(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")!.value;
+  const month = parts.find((part) => part.type === "month")!.value;
+  const day = parts.find((part) => part.type === "day")!.value;
+  return `${year}-${month}-${day}`;
+}
+
+export function getCurrentWeekRange(todayISODate: string = getTodayISODate()): {
   start: string;
   end: string;
   days: string[];
 } {
+  const [year, month, day] = todayISODate.split("-").map(Number);
+  const today = new Date(year, month - 1, day);
   const dayOfWeek = today.getDay(); // 0 (Sun) – 6 (Sat)
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(today);
-  monday.setHours(0, 0, 0, 0);
   monday.setDate(today.getDate() + diffToMonday);
 
   const days: string[] = [];

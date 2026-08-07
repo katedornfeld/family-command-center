@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { fetchTodayForecast, WeatherApiError } from "@/lib/weather/client";
-import { toISODate } from "@/lib/dates";
+import { getTodayISODate } from "@/lib/dates";
 
 // Weather fetch + one upsert should be fast; this is generous headroom in
 // case the weather API is briefly slow.
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Server is missing weather configuration." }, { status: 500 });
   }
 
-  const today = toISODate(new Date());
+  const today = getTodayISODate();
 
   // 1. Fetch today's forecast. Network failures and unexpected API
   // responses are handled the same way here — both are upstream failures
