@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { generateRecurringDates, MAX_RECURRING_OCCURRENCES } from "@/lib/dates";
+import type { RecurrenceFrequency } from "@/lib/dates";
 import { supabase } from "@/lib/supabase/client";
 import type { EventRow, EventType, FamilyMember } from "@/types/database";
 
@@ -38,8 +40,15 @@ export function EventForm({
   const [familyMemberId, setFamilyMemberId] = useState(event?.family_member_id ?? "");
   const [eventType, setEventType] = useState<EventType>(event?.event_type ?? "appointment");
   const [notes, setNotes] = useState(event?.notes ?? "");
+  const [repeatFrequency, setRepeatFrequency] = useState<RecurrenceFrequency | "none">("none");
+  const [repeatUntil, setRepeatUntil] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const recurrencePreview =
+    mode === "add" && repeatFrequency !== "none" && eventDate && repeatUntil >= eventDate
+      ? generateRecurringDates(eventDate, repeatFrequency, repeatUntil)
+      : null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -52,6 +61,26 @@ export function EventForm({
     if (startTime && endTime && endTime < startTime) {
       setError("End time can't be before start time.");
       return;
+    }
+
+    let occurrenceDates = [eventDate];
+    if (mode === "add" && repeatFrequency !== "none") {
+      if (!repeatUntil) {
+        setError("Choose a repeat end date.");
+        return;
+      }
+      if (repeatUntil < eventDate) {
+        setError("Repeat end date can't be before the event date.");
+        return;
+      }
+      const { dates, truncated } = generateRecurringDates(eventDate, repeatFrequency, repeatUntil);
+      if (truncated) {
+        setError(
+          `That repeats more than ${MAX_RECURRING_OCCURRENCES} times — choose a shorter end date or a less frequent repeat.`,
+        );
+        return;
+      }
+      occurrenceDates = dates;
     }
 
     setSubmitting(true);
@@ -69,7 +98,13 @@ export function EventForm({
 
     const { error: saveError } =
       mode === "add"
-        ? await supabase.from("events").insert([payload])
+        ? await supabase.from("events").insert(
+            occurrenceDates.map((date) => ({
+              ...payload,
+              event_date: date,
+              is_recurring: occurrenceDates.length > 1,
+            })),
+          )
         : await supabase.from("events").update(payload).eq("id", event!.id);
 
     setSubmitting(false);
@@ -107,6 +142,46 @@ export function EventForm({
               className={inputClasses}
             />
           </label>
+
+          {mode === "add" ? (
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">Repeat</span>
+              <select
+                value={repeatFrequency}
+                onChange={(e) => setRepeatFrequency(e.target.value as RecurrenceFrequency | "none")}
+                className={inputClasses}
+              >
+                <option value="none">Does not repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+          ) : null}
+
+          {mode === "add" && repeatFrequency !== "none" ? (
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">Repeat Until</span>
+              <input
+                type="date"
+                value={repeatUntil}
+                onChange={(e) => setRepeatUntil(e.target.value)}
+                min={eventDate || undefined}
+                required
+                className={inputClasses}
+              />
+            </label>
+          ) : null}
+
+          {recurrencePreview ? (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:col-span-2">
+              {recurrencePreview.truncated
+                ? `That's more than ${MAX_RECURRING_OCCURRENCES} occurrences — choose a shorter end date or a less frequent repeat.`
+                : `This will create ${recurrencePreview.dates.length} event${
+                    recurrencePreview.dates.length === 1 ? "" : "s"
+                  }.`}
+            </p>
+          ) : null}
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium text-zinc-700 dark:text-zinc-300">Event Type</span>

@@ -72,3 +72,52 @@ export function formatEventTime(timeStr: string | null): string {
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
   return `${hour12}:${minute.toString().padStart(2, "0")} ${period}`;
 }
+
+export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
+
+// Safety cap so a mistyped end date (or "every day for 10 years") can't
+// generate an unbounded number of rows in one insert.
+export const MAX_RECURRING_OCCURRENCES = 200;
+
+// Adds `months` to `date`, clamping the day-of-month to the target month's
+// last day instead of letting it roll over (native Date math would turn
+// Jan 31 + 1 month into Mar 3, skipping February entirely).
+function addMonthsClamped(date: Date, months: number): Date {
+  const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  const daysInTargetMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(date.getDate(), daysInTargetMonth));
+  return target;
+}
+
+/**
+ * Expands a repeating event into concrete occurrence dates (inclusive of
+ * both `startDate` and `untilDate`), for insertion as individual `events`
+ * rows — this app has no recurrence-rule column, so each occurrence is
+ * stored as its own row.
+ */
+export function generateRecurringDates(
+  startDate: string,
+  frequency: RecurrenceFrequency,
+  untilDate: string,
+): { dates: string[]; truncated: boolean } {
+  const [year, month, day] = startDate.split("-").map(Number);
+  const start = new Date(year, month - 1, day);
+  const dates: string[] = [];
+
+  for (let i = 0; dates.length < MAX_RECURRING_OCCURRENCES; i++) {
+    const occurrence =
+      frequency === "daily"
+        ? new Date(year, month - 1, day + i)
+        : frequency === "weekly"
+          ? new Date(year, month - 1, day + i * 7)
+          : addMonthsClamped(start, i);
+    const iso = toISODate(occurrence);
+    if (iso > untilDate) break;
+    dates.push(iso);
+  }
+
+  const truncated =
+    dates.length === MAX_RECURRING_OCCURRENCES && dates[dates.length - 1] < untilDate;
+
+  return { dates, truncated };
+}
